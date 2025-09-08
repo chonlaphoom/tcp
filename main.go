@@ -6,6 +6,7 @@ import (
 	"io"
 	"log"
 	"os"
+	"strings"
 )
 
 func main() {
@@ -17,19 +18,28 @@ func main() {
 	}
 	defer file.Close()
 
-	readBuffer := make([]byte, 8, 8)
+	var currentLine string
 	for {
-		_, errorRead := file.Read(readBuffer)
+		readBuffer := make([]byte, 8, 8)
+		upto, errorRead := file.Read(readBuffer)
 		if errorRead != nil {
 			if errors.Is(errorRead, io.EOF) {
+				if currentLine != "" {
+					fmt.Print("read: ", currentLine)
+					currentLine = ""
+				}
 				break
 			}
 			fmt.Printf("could not read from %s: %s\n", inputFilePath, errorRead)
 			break
 		}
 
-		msg := fmt.Sprint("read: ", string(readBuffer))
-		fmt.Println(msg)
+		parts := strings.Split(string(readBuffer[:upto]), "\n")
+		for i := 0; i < len(parts)-1; i++ {
+			fmt.Printf("read: %s%s\n", currentLine, parts[i])
+			currentLine = ""
+		}
+		currentLine += parts[len(parts)-1]
 	}
 
 	os.Exit(0)
