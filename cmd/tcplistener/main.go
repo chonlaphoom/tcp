@@ -47,11 +47,13 @@ func getLinesChannel(file io.ReadCloser) <-chan string {
 		for {
 			readBuffer := make([]byte, 8)
 			upto, errorRead := file.Read(readBuffer)
+
 			if errorRead != nil {
+				if currentLine != "" {
+					lineChan <- currentLine
+				}
+
 				if errors.Is(errorRead, io.EOF) {
-					if currentLine != "" {
-						lineChan <- fmt.Sprint(currentLine)
-					}
 					break
 				}
 
@@ -59,9 +61,14 @@ func getLinesChannel(file io.ReadCloser) <-chan string {
 				break
 			}
 
-			parts := strings.Split(string(readBuffer[:upto]), "\n")
+			if upto < 8 {
+				lineChan <- fmt.Sprintf("%s%s", currentLine, string(readBuffer[:upto]))
+				break
+			}
+
+			parts := strings.Split(string(readBuffer[:upto]), "\r\n")
 			for i := 0; i < len(parts)-1; i++ {
-				lineChan <- fmt.Sprintf("%s%s\n", currentLine, parts[i])
+				lineChan <- fmt.Sprintf("%s%s", currentLine, parts[i])
 				currentLine = ""
 			}
 			currentLine += parts[len(parts)-1]
