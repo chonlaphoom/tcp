@@ -31,12 +31,12 @@ type RequestLine struct {
 
 func RequestFromReader(reader io.Reader) (*Request, error) {
 	buf := make([]byte, bufferSize)
-	readerToIndex := 0
-	err := error(nil)
 	request := &Request{
 		state: requestStateInitialized,
 	}
 
+	readerToIndex := 0
+	err := error(nil)
 	for request.state != requestStateDone {
 		// stretch the buffer if needed
 		if readerToIndex >= len(buf) {
@@ -47,15 +47,21 @@ func RequestFromReader(reader io.Reader) (*Request, error) {
 
 		// try to parse what we have
 		numOfBytesRead, errRead := reader.Read(buf[readerToIndex:])
+		fmt.Println("current read>>", string(buf))
 
 		if errRead != nil {
 			if errors.Is(errRead, io.EOF) {
+				_, errParse := request.parse(buf[:readerToIndex])
+				if errParse != nil {
+					return nil, errParse
+				}
 				request.state = requestStateDone
 				break
 			}
 			return nil, errRead
 		}
 
+		readerToIndex += numOfBytesRead
 	}
 
 	if err != nil {

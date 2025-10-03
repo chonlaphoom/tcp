@@ -87,4 +87,13 @@ func TestRequestLineParse(t *testing.T) {
 	}
 	_, err = RequestFromReader(reader)
 	require.Error(t, err)
+
+	// TEST: large number of bytes per read
+	reader = &chunkReader{
+		data:            "GET /coffee HTTP/1.1\r\nHost: localhost:42069\r\nUser-Agent: curl/7.81.0\r\nAccept: */*\r\n\r\n",
+		numBytesPerRead: 50,
+	}
+	r, err = RequestFromReader(reader)
+	require.NoError(t, err)
+	assert.Equal(t, "GET", r.RequestLine.Method)
 }
