@@ -47,7 +47,6 @@ func RequestFromReader(reader io.Reader) (*Request, error) {
 
 		// try to parse what we have
 		numOfBytesRead, errRead := reader.Read(buf[readerToIndex:])
-		fmt.Println("current read>>", string(buf))
 
 		if errRead != nil {
 			if errors.Is(errRead, io.EOF) {
