@@ -8,8 +8,8 @@ import (
 	"strings"
 )
 
-const bufferSize = 8
-const crlf = "\r\n"
+const BUFFER_SIZE = 8
+const CRLF = "\r\n"
 
 type requestState int
 
@@ -30,13 +30,12 @@ type RequestLine struct {
 }
 
 func RequestFromReader(reader io.Reader) (*Request, error) {
-	buf := make([]byte, bufferSize)
+	buf := make([]byte, BUFFER_SIZE)
 	request := &Request{
 		state: requestStateInitialized,
 	}
 
 	readerToIndex := 0
-	err := error(nil)
 	for request.state != requestStateDone {
 		// stretch the buffer if needed
 		if readerToIndex >= len(buf) {
@@ -63,17 +62,13 @@ func RequestFromReader(reader io.Reader) (*Request, error) {
 		readerToIndex += numOfBytesRead
 	}
 
-	if err != nil {
-		return request, err
-	}
-
 	return &Request{
 		RequestLine: request.RequestLine,
 	}, nil
 }
 
 func parseRequestLine(buf []byte) (*RequestLine, int, error) {
-	idx := bytes.Index(buf, []byte(crlf))
+	idx := bytes.Index(buf, []byte(CRLF))
 	if idx == -1 {
 		// not enough data to parse the request line
 		return nil, 0, nil
@@ -89,7 +84,7 @@ func parseRequestLine(buf []byte) (*RequestLine, int, error) {
 }
 
 func requestLineFromString(str string) (*RequestLine, error) {
-	firstLine := strings.Split(str, "\r\n")[0]
+	firstLine := strings.Split(str, CRLF)[0]
 	parts := strings.Split(firstLine, " ")
 
 	if len(parts) != 3 {
