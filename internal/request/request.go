@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"strings"
 )
 
@@ -43,16 +44,12 @@ func RequestFromReader(reader io.Reader) (*Request, error) {
 			copy(newBuf, buf)
 			buf = newBuf
 		}
+		log.Println(string(buf))
 
-		// try to parse what we have
 		numOfBytesRead, errRead := reader.Read(buf[readerToIndex:])
 
 		if errRead != nil {
 			if errors.Is(errRead, io.EOF) {
-				_, errParse := request.parse(buf[:readerToIndex])
-				if errParse != nil {
-					return nil, errParse
-				}
 				request.state = requestStateDone
 				break
 			}
@@ -60,6 +57,14 @@ func RequestFromReader(reader io.Reader) (*Request, error) {
 		}
 
 		readerToIndex += numOfBytesRead
+
+		numBytesParsed, errParse := request.parse(buf[:readerToIndex])
+		if errParse != nil {
+			return nil, errParse
+		}
+
+		copy(buf, buf[numBytesParsed:])
+		readerToIndex -= numBytesParsed
 	}
 
 	return &Request{
@@ -118,6 +123,7 @@ func (r *Request) parse(data []byte) (int, error) {
 			// need more data
 			return 0, nil
 		}
+		log.Println("Parsed Request Line")
 		r.RequestLine = *requestLine
 		r.state = requestStateDone
 		return n, nil
