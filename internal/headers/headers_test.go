@@ -14,7 +14,7 @@ func TestHeadersParse(t *testing.T) {
 	n, done, err := headers.Parse(data)
 	require.NoError(t, err)
 	require.NotNil(t, headers)
-	assert.Equal(t, "localhost:42069", headers["Host"])
+	assert.Equal(t, "localhost:42069", headers["host"])
 	assert.Equal(t, 23, n)
 	assert.False(t, done)
 
@@ -32,11 +32,11 @@ func TestHeadersParse(t *testing.T) {
 	n, done, err = headers.Parse(data)
 	require.NoError(t, err)
 	require.NotNil(t, headers)
-	assert.Equal(t, "localhost:42069", headers["Host"])
+	assert.Equal(t, "localhost:42069", headers["host"])
 	assert.Equal(t, 33, n)
 	assert.False(t, done)
 
-	// TEST: Valid done
+	// TEST: Valid done (1)
 	headers = NewHeaders()
 	data = []byte("\r\n")
 	n, done, err = headers.Parse(data)
@@ -54,11 +54,11 @@ func TestHeadersParse(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, headers)
 	assert.Equal(t, "localhost:42069", headers["host"])
-	assert.Equal(t, "curl/7.81.0", headers["User-Agent"])
+	assert.Equal(t, "curl/7.81.0", headers["user-agent"])
 	assert.Equal(t, 25, n)
 	assert.False(t, done)
 
-	// Test: Valid done
+	// TEST: Valid done (2)
 	headers = NewHeaders()
 	data = []byte("\r\n a bunch of other stuff")
 	n, done, err = headers.Parse(data)
@@ -68,11 +68,21 @@ func TestHeadersParse(t *testing.T) {
 	assert.Equal(t, 0, n)
 	assert.True(t, done)
 
-	// Test: Invalid spacing header
-	headers = NewHeaders()
-	data = []byte("       Host : localhost:42069       \r\n\r\n")
+	// TEST: Header include prohibited characters
+	data = []byte("H©st: localhost:42069\r\n\r\n")
 	n, done, err = headers.Parse(data)
 	require.Error(t, err)
 	assert.Equal(t, 0, n)
+	assert.False(t, done)
+
+	// TEST: Header already exists, should append
+	headers = NewHeaders()
+	headers.Set("host", "localhost:42069")
+	data = []byte("Host: example.com\r\n\r\n")
+	n, done, err = headers.Parse(data)
+	require.NoError(t, err)
+	require.NotNil(t, headers)
+	assert.Equal(t, "localhost:42069, example.com", headers["host"])
+	assert.Equal(t, 19, n)
 	assert.False(t, done)
 }

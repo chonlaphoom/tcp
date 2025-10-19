@@ -3,6 +3,8 @@ package headers
 import (
 	"bytes"
 	"errors"
+	"regexp"
+	"strings"
 )
 
 type Headers map[string]string
@@ -37,8 +39,12 @@ func (h Headers) Parse(data []byte) (n int, done bool, err error) {
 	}
 
 	headerName := string(bytes.TrimLeft(headerParts[0], " "))
+	if !containsOnlyAllowCharacters(headerName) {
+		return 0, false, errors.New("invalid characters in header")
+	}
+
 	headerValue := string(bytes.TrimSpace(headerParts[1]))
-	h.Set(headerName, headerValue)
+	h.Set(strings.ToLower(headerName), headerValue)
 
 	return len(part) + len(CRLF), false, nil
 }
@@ -48,5 +54,15 @@ func NewHeaders() Headers {
 }
 
 func (h Headers) Set(key, value string) {
+	if h[key] != "" {
+		value = h[key] + ", " + value
+	}
 	h[key] = value
+}
+
+func containsOnlyAllowCharacters(data string) bool {
+	allowedChars := "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!#$%&'*+-.^_`|~"
+	pattern := "^[" + regexp.QuoteMeta(allowedChars) + "]+$"
+	matched, _ := regexp.MatchString(pattern, data)
+	return matched
 }
