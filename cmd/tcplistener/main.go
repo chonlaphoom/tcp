@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"io"
 	"log"
-	"strings"
-
 	"net"
+	"strings"
+	"tcpgo/internal/request"
 )
 
 func main() {
@@ -26,13 +26,15 @@ func main() {
 		}
 		fmt.Printf("accepted connection from %s\n", conn.RemoteAddr())
 
-		linesChannel := getLinesChannel(conn)
-
-		for line := range linesChannel {
-			fmt.Println(line)
+		request, errorRead := request.RequestFromReader(conn)
+		if errorRead != nil {
+			fmt.Printf("reader error: %s\n", errorRead)
 		}
 
+		fmt.Printf("Request line:\n- Method: %s\n- Target: %s\n- Version: %s\n", request.RequestLine.Method, request.RequestLine.RequestTarget, request.RequestLine.HttpVersion)
+
 		fmt.Printf("closed connection from %s\n", conn.RemoteAddr())
+		break
 	}
 }
 
@@ -61,6 +63,7 @@ func getLinesChannel(file io.ReadCloser) <-chan string {
 				break
 			}
 
+			// content less than buffer size
 			if upto < 8 {
 				lineChan <- fmt.Sprintf("%s%s", currentLine, string(readBuffer[:upto]))
 				break
