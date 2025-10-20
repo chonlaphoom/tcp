@@ -5,8 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	"strings"
+	"tcpgo/internal/headers"
 )
 
 const BUFFER_SIZE = 8
@@ -15,12 +15,14 @@ const CRLF = "\r\n"
 type requestState int
 
 const (
-	requestStateInitialized requestState = 1
-	requestStateDone        requestState = 0
+	requestStateInitialized    requestState = 1
+	requestStateDone           requestState = 0
+	requestStateParsingHeaders requestState = 2
 )
 
 type Request struct {
 	RequestLine RequestLine
+	Headers     headers.Headers
 	state       requestState
 }
 
@@ -44,7 +46,6 @@ func RequestFromReader(reader io.Reader) (*Request, error) {
 			copy(newBuf, buf)
 			buf = newBuf
 		}
-		log.Println(string(buf))
 
 		numOfBytesRead, errRead := reader.Read(buf[readerToIndex:])
 
@@ -69,6 +70,7 @@ func RequestFromReader(reader io.Reader) (*Request, error) {
 
 	return &Request{
 		RequestLine: request.RequestLine,
+		Headers:     request.Headers,
 	}, nil
 }
 
@@ -112,6 +114,23 @@ func requestLineFromString(str string) (*RequestLine, error) {
 }
 
 func (r *Request) parse(data []byte) (int, error) {
+	totalBytesParsed := 0
+	for r.state != requestStateDone {
+		n, err := r.parseSingle(data[totalBytesParsed:])
+		if err != nil {
+			return 0, err
+		}
+		if n == 0 {
+			// need more data
+			break
+		}
+		totalBytesParsed += n
+	}
+
+	return totalBytesParsed, nil
+}
+
+func (r *Request) parseSingle(data []byte) (int, error) {
 	switch r.state {
 	case requestStateInitialized:
 		requestLine, n, err := parseRequestLine(data)
@@ -123,12 +142,25 @@ func (r *Request) parse(data []byte) (int, error) {
 			// need more data
 			return 0, nil
 		}
-		log.Println("Parsed Request Line")
 		r.RequestLine = *requestLine
-		r.state = requestStateDone
+		r.state = requestStateParsingHeaders
 		return n, nil
-	case requestStateDone:
-		return 0, fmt.Errorf("error: trying to read data in a done state")
+	case requestStateParsingHeaders:
+		if r.Headers == nil {
+			r.Headers = headers.NewHeaders()
+		}
+		n, done, err := r.Headers.Parse(data)
+		if err != nil {
+			return 0, err
+		}
+		if n == 0 && !done {
+			// need more data
+			return 0, nil
+		}
+		if done {
+			r.state = requestStateDone
+		}
+		return n, nil
 	default:
 		return 0, fmt.Errorf("unknown state")
 	}

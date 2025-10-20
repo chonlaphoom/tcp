@@ -27,15 +27,35 @@ func main() {
 		fmt.Printf("accepted connection from %s\n", conn.RemoteAddr())
 
 		request, errorRead := request.RequestFromReader(conn)
+
 		if errorRead != nil {
 			fmt.Printf("reader error: %s\n", errorRead)
 		}
 
-		fmt.Printf("Request line:\n- Method: %s\n- Target: %s\n- Version: %s\n", request.RequestLine.Method, request.RequestLine.RequestTarget, request.RequestLine.HttpVersion)
+		printRequestLines(request.RequestLine)
+		printHeaders(request.Headers)
 
 		fmt.Printf("closed connection from %s\n", conn.RemoteAddr())
 		break
 	}
+}
+
+func printRequestLines(request request.RequestLine) {
+	fmt.Printf("Request line:\n- Method: %s\n- Target: %s\n- Version: %s", request.Method, request.RequestTarget, request.HttpVersion)
+}
+
+func printHeaders(headers map[string]string) {
+	fmt.Println("")
+	strToPrint := "Headers:\n"
+	for key, value := range headers {
+		if key == "user-agent" && strings.HasPrefix(value, "curl/") {
+			// normalize curl user-agent for testing
+			strToPrint += fmt.Sprintf("- %s: %s\n", key, "curl")
+			continue
+		}
+		strToPrint += fmt.Sprintf("- %s: %s\n", key, value)
+	}
+	fmt.Print(strToPrint)
 }
 
 func getLinesChannel(file io.ReadCloser) <-chan string {
