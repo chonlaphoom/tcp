@@ -12,8 +12,7 @@ type Headers map[string]string
 const CRLF = "\r\n"
 
 func (h Headers) Parse(data []byte) (n int, done bool, err error) {
-	isContainsCRLF := bytes.Contains(data, []byte(CRLF))
-	if !isContainsCRLF {
+	if isContainsCRLF := bytes.Contains(data, []byte(CRLF)); !isContainsCRLF {
 		// Not enough data to parse headers
 		return 0, false, nil
 	}
@@ -21,6 +20,11 @@ func (h Headers) Parse(data []byte) (n int, done bool, err error) {
 	if bytes.Index(data, []byte(CRLF)) == 0 {
 		// Done parsing headers
 		return 0, true, nil
+	}
+
+	if isEndsWithCRLF := bytes.HasSuffix(data, []byte(CRLF)); !isEndsWithCRLF {
+		// Not enough data to parse headers
+		return 0, false, nil
 	}
 
 	part := bytes.Split(data, []byte(CRLF))[0]

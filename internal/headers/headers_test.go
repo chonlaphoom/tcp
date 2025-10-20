@@ -85,4 +85,12 @@ func TestHeadersParse(t *testing.T) {
 	assert.Equal(t, "localhost:42069, example.com", headers["host"])
 	assert.Equal(t, 19, n)
 	assert.False(t, done)
+
+	// TEST: Missing End of Headers
+	headers = NewHeaders()
+	data = []byte("Host: localhost:42069\r\nUser-Agent: curl/7.81.0\r\nAccept: */*")
+	n, done, err = headers.Parse(data)
+	assert.Equal(t, 0, n)
+	assert.Nil(t, err)
+	assert.False(t, done)
 }
