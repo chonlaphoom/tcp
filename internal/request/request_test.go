@@ -159,7 +159,7 @@ func TestRequestLineParse(t *testing.T) {
 	assert.Equal(t, "curl/7.81.0", r.Headers["user-agent"])
 	assert.Equal(t, "*/*", r.Headers["accept"])
 
-	// TEST: Missing End of Headers
+	//TEST: Missing End of Headers
 	reader = &chunkReader{
 		data:            "GET / HTTP/1.1\r\nHost: localhost:42069\r\nUser-Agent: curl/7.81.0\r\nAccept: */*",
 		numBytesPerRead: 3,

@@ -12,18 +12,17 @@ import (
 const BUFFER_SIZE = 8
 const CRLF = "\r\n"
 
-type requestState int
-
 const (
-	requestStateInitialized    requestState = 1
-	requestStateDone           requestState = 0
-	requestStateParsingHeaders requestState = 2
+	requestStateInitialized = iota
+	requestStateDone
+	requestStateParsingHeaders
+	requestStateParsingBody
 )
 
 type Request struct {
 	RequestLine RequestLine
 	Headers     headers.Headers
-	state       requestState
+	state       int32
 }
 
 type RequestLine struct {
@@ -35,7 +34,9 @@ type RequestLine struct {
 func RequestFromReader(reader io.Reader) (*Request, error) {
 	buf := make([]byte, BUFFER_SIZE)
 	request := &Request{
-		state: requestStateInitialized,
+		state:       requestStateInitialized,
+		RequestLine: RequestLine{},
+		Headers:     headers.Headers{},
 	}
 
 	readerToIndex := 0
@@ -71,6 +72,7 @@ func RequestFromReader(reader io.Reader) (*Request, error) {
 	return &Request{
 		RequestLine: request.RequestLine,
 		Headers:     request.Headers,
+		state:       request.state,
 	}, nil
 }
 
