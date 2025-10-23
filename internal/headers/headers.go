@@ -19,12 +19,7 @@ func (h Headers) Parse(data []byte) (n int, done bool, err error) {
 
 	if bytes.Index(data, []byte(CRLF)) == 0 {
 		// Done parsing headers
-		return 0, true, nil
-	}
-
-	if isEndsWithCRLF := bytes.HasSuffix(data, []byte(CRLF)); !isEndsWithCRLF {
-		// Not enough data to parse headers
-		return 0, false, nil
+		return 2, true, nil
 	}
 
 	part := bytes.Split(data, []byte(CRLF))[0]
@@ -62,6 +57,11 @@ func (h Headers) Set(key, value string) {
 		value = h[key] + ", " + value
 	}
 	h[key] = value
+}
+
+func (h Headers) Get(key string) (value string, exists bool) {
+	v, exists := h[key]
+	return v, exists
 }
 
 func containsOnlyAllowCharacters(data string) bool {

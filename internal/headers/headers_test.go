@@ -42,7 +42,7 @@ func TestHeadersParse(t *testing.T) {
 	n, done, err = headers.Parse(data)
 	require.NoError(t, err)
 	require.NotNil(t, headers)
-	assert.Equal(t, 0, n)
+	assert.Equal(t, 2, n)
 	assert.True(t, done)
 
 	// more tests
@@ -65,7 +65,7 @@ func TestHeadersParse(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, headers)
 	assert.Empty(t, headers)
-	assert.Equal(t, 0, n)
+	assert.Equal(t, 2, n)
 	assert.True(t, done)
 
 	// TEST: Header include prohibited characters
@@ -90,7 +90,7 @@ func TestHeadersParse(t *testing.T) {
 	headers = NewHeaders()
 	data = []byte("Host: localhost:42069\r\nUser-Agent: curl/7.81.0\r\nAccept: */*")
 	n, done, err = headers.Parse(data)
-	assert.Equal(t, 0, n)
+	assert.Equal(t, 23, n)
 	assert.Nil(t, err)
 	assert.False(t, done)
 }

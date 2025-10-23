@@ -168,4 +168,80 @@ func TestRequestLineParse(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, r)
 	require.False(t, r.state != requestStateDone)
+
+	// TEST: Standard Body
+	reader = &chunkReader{
+		data: "POST /submit HTTP/1.1\r\n" +
+			"Host: localhost:42069\r\n" +
+			"Content-Length: 13\r\n" +
+			"\r\n" +
+			"hello world!\n",
+		numBytesPerRead: 3,
+	}
+	r, err = RequestFromReader(reader)
+	require.NoError(t, err)
+	require.NotNil(t, r)
+	assert.Equal(t, "hello world!\n", string(r.Body))
+
+	// TEST: Body shorter than reported content length
+	// reader = &chunkReader{
+	// 	data: "POST /submit HTTP/1.1\r\n" +
+	// 		"Host: localhost:42069\r\n" +
+	// 		"Content-Length: 20\r\n" +
+	// 		"\r\n" +
+	// 		"partial content",
+	// 	numBytesPerRead: 3,
+	// }
+	// r, err = RequestFromReader(reader)
+	// require.Error(t, err)
+	// require.Nil(t, r)
+
+	// TEST: Empty Body, 0 reported content length
+	reader = &chunkReader{
+		data: "POST /submit HTTP/1.1\r\n" +
+			"Host: localhost:42069\r\n" +
+			"Content-Length: 0\r\n" +
+			"\r\n",
+		numBytesPerRead: 3,
+	}
+	r, err = RequestFromReader(reader)
+	require.NoError(t, err)
+	require.NotNil(t, r)
+	assert.Equal(t, 0, len(r.Body))
+
+	// TEST: Empty Body, missing content length
+	reader = &chunkReader{
+		data: "POST /submit HTTP/1.1\r\n" +
+			"Host: localhost:42069\r\n" +
+			"\r\n",
+		numBytesPerRead: 3,
+	}
+	r, err = RequestFromReader(reader)
+	require.NoError(t, err)
+	require.NotNil(t, r)
+	assert.Equal(t, 0, len(r.Body))
+
+	// TEST: No Content-length but body present
+	reader = &chunkReader{
+		data: "POST /submit HTTP/1.1\r\n" +
+			"Host: localhost:42069\r\n" +
+			"\r\n" +
+			"body without length",
+		numBytesPerRead: 3,
+	}
+	r, err = RequestFromReader(reader)
+	require.NoError(t, err)
+	require.NotNil(t, r)
+
+	// TEST: body exeeds reported content length
+	reader = &chunkReader{
+		data: "POST /submit HTTP/1.1\r\n" +
+			"Host: localhost:42069\r\n" +
+			"Content-Length: 5\r\n" +
+			"\r\n" +
+			"body exceeds length",
+		numBytesPerRead: 3,
+	}
+	_, err = RequestFromReader(reader)
+	require.Error(t, err)
 }

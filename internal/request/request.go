@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"strconv"
 	"strings"
 	"tcpgo/internal/headers"
 )
@@ -14,15 +15,17 @@ const CRLF = "\r\n"
 
 const (
 	requestStateInitialized = iota
-	requestStateDone
 	requestStateParsingHeaders
 	requestStateParsingBody
+	requestStateDone
 )
 
 type Request struct {
-	RequestLine RequestLine
-	Headers     headers.Headers
-	state       int32
+	RequestLine    RequestLine
+	Headers        headers.Headers
+	Body           []byte
+	state          int
+	bodyLengthRead int
 }
 
 type RequestLine struct {
@@ -72,6 +75,7 @@ func RequestFromReader(reader io.Reader) (*Request, error) {
 	return &Request{
 		RequestLine: request.RequestLine,
 		Headers:     request.Headers,
+		Body:        request.Body,
 		state:       request.state,
 	}, nil
 }
@@ -160,9 +164,29 @@ func (r *Request) parseSingle(data []byte) (int, error) {
 			return 0, nil
 		}
 		if done {
-			r.state = requestStateDone
+			r.state = requestStateParsingBody
 		}
 		return n, nil
+	case requestStateParsingBody:
+		contentLengthStr, exists := r.Headers.Get("content-length")
+		if !exists {
+			// no body
+			r.state = requestStateDone
+			return 0, nil
+		}
+		contentLengthInt, err := strconv.Atoi(contentLengthStr)
+		if err != nil {
+			return 0, fmt.Errorf("invalid content-length header")
+		}
+		r.Body = append(r.Body, data...)
+		r.bodyLengthRead += len(data)
+		if r.bodyLengthRead > contentLengthInt {
+			return 0, fmt.Errorf("Content-Length too large")
+		}
+		if r.bodyLengthRead == contentLengthInt {
+			r.state = requestStateDone
+		}
+		return len(data), nil
 	default:
 		return 0, fmt.Errorf("unknown state")
 	}
