@@ -34,6 +34,7 @@ func main() {
 
 		printRequestLines(request.RequestLine)
 		printHeaders(request.Headers)
+		printBody(request.Body)
 
 		fmt.Printf("closed connection from %s\n", conn.RemoteAddr())
 		break
@@ -56,6 +57,10 @@ func printHeaders(headers map[string]string) {
 		strToPrint += fmt.Sprintf("- %s: %s\n", key, value)
 	}
 	fmt.Print(strToPrint)
+}
+
+func printBody(body []byte) {
+	fmt.Printf("Body:\n%s\n", string(body))
 }
 
 func getLinesChannel(file io.ReadCloser) <-chan string {
