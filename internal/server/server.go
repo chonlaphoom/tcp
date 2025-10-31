@@ -6,6 +6,7 @@ import (
 	"net"
 	"strconv"
 	"sync/atomic"
+	"tcpgo/internal/response"
 )
 
 type Server struct {
@@ -54,5 +55,6 @@ func (s *Server) listen() {
 
 func (s *Server) handle(conn net.Conn) {
 	defer conn.Close()
-	conn.Write([]byte("HTTP/1.1 200 OK\nContent-Type: text/plain\nContent-Length: 13\n\nHello World!"))
+	response.WriteStatusLine(conn, response.StatusOK)
+	response.WriteHeaders(conn, response.GetDefaultHeaders(0))
 }
