@@ -12,13 +12,12 @@ import (
 	"tcpgo/internal/response"
 )
 
+type Handler func(w response.Writer, req *request.Request)
 type Server struct {
 	listener net.Listener
 	handler  Handler
 	isClosed atomic.Bool
 }
-
-type Handler func(w io.Writer, req *request.Request) *HandlerError
 
 type HandlerError struct {
 	Msg  string
@@ -27,7 +26,8 @@ type HandlerError struct {
 
 func (h *HandlerError) Write(w io.Writer) {
 	response.WriteStatusLine(w, h.Code)
-	response.WriteHeaders(w, response.GetDefaultHeaders(len(h.Msg)))
+	headers := response.NewResponseHeaders(len(h.Msg), "text/plain", "close")
+	response.WriteHeaders(w, headers)
 	w.Write([]byte(h.Msg))
 	log.Printf("handler error: %s: %v\n", h.Msg, h.Code)
 }
@@ -85,20 +85,10 @@ func (s *Server) handle(conn net.Conn) {
 	}
 
 	buffer := bytes.NewBuffer([]byte{})
-	hdrErr := s.handler(buffer, req)
-	if hdrErr != nil {
-		hdrErr.Write(conn)
-		return
+	res := response.Writer{
+		Buffer:      buffer,
+		WriterState: 0,
 	}
-
-	// successful handling
-	response.WriteStatusLine(conn, response.StatusOK)
-	bufferedData := buffer.Bytes()
-
-	responseHeader := response.GetDefaultHeaders(len(bufferedData))
-	response.WriteHeaders(conn, responseHeader)
-
-	var concatenatedBuffer bytes.Buffer
-	concatenatedBuffer.Write(bufferedData)
-	conn.Write(concatenatedBuffer.Bytes())
+	s.handler(res, req)
+	conn.Write(res.Buffer.Bytes())
 }

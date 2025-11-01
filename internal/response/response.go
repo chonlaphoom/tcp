@@ -1,6 +1,7 @@
 package response
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"strings"
@@ -14,6 +15,35 @@ const (
 	StatusBadRequest          StatusCode = 400
 	StatusInternalServerError StatusCode = 500
 )
+
+type Writer struct {
+	Buffer      *bytes.Buffer
+	WriterState int // 0 good, 1 bad
+}
+
+func (w *Writer) WriteStatusLine(statusCode StatusCode) error {
+	err := WriteStatusLine(w.Buffer, statusCode)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (w *Writer) WriteHeaders(headers headers.Headers) error {
+	err := WriteHeaders(w.Buffer, headers)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (w *Writer) WriteBody(body []byte) error {
+	_, err := w.Buffer.Write(body)
+	if err != nil {
+		return err
+	}
+	return nil
+}
 
 func WriteStatusLine(w io.Writer, statusCode StatusCode) error {
 	var HTTPVersion = "1.1"
@@ -50,11 +80,11 @@ func WriteStatusLine(w io.Writer, statusCode StatusCode) error {
 	}
 }
 
-func GetDefaultHeaders(contentLen int) headers.Headers {
+func NewResponseHeaders(ctnlen int, ctntype string, connectiontype string) headers.Headers {
 	return headers.Headers{
-		"Content-Type":   "text/plain",
-		"Content-Length": fmt.Sprint(contentLen),
-		"Connection":     "close",
+		"Content-Type":   ctntype,
+		"Content-Length": fmt.Sprint(ctnlen),
+		"Connection":     connectiontype,
 	}
 }
 
