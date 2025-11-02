@@ -14,7 +14,6 @@ const port = 42069
 
 func handler(w response.Writer, req *request.Request) {
 	contentType := "text/html"
-	connection := "close"
 	if req.RequestLine.RequestTarget == "/yourproblem" {
 		w.WriteStatusLine(response.StatusBadRequest)
 		body := `<html>
@@ -26,7 +25,7 @@ func handler(w response.Writer, req *request.Request) {
     <p>Your request honestly kinda sucked.</p>
   </body>
 </html>`
-		w.WriteHeaders(response.NewResponseHeaders(len(body), contentType, connection))
+		w.WriteHeaders(response.NewResponseHeaders(response.NewContentLength(len(body)), response.NewContentType(contentType), response.NewConnection("")))
 		w.WriteBody([]byte(body))
 		return
 	}
@@ -42,7 +41,7 @@ func handler(w response.Writer, req *request.Request) {
     <p>Okay, you know what? This one is on me.</p>
   </body>
 </html>`
-		w.WriteHeaders(response.NewResponseHeaders(len(body), contentType, connection))
+		w.WriteHeaders(response.NewResponseHeaders(response.NewContentLength(len(body)), response.NewContentType(contentType), response.NewConnection("")))
 		w.WriteBody([]byte(body))
 		return
 	}
@@ -56,7 +55,7 @@ func handler(w response.Writer, req *request.Request) {
     <p>Your request was an absolute banger.</p>
   </body>
 </html>`
-	w.WriteHeaders(response.NewResponseHeaders(len(body), contentType, connection))
+	w.WriteHeaders(response.NewResponseHeaders(response.NewContentLength(len(body)), response.NewContentType(contentType), response.NewConnection("")))
 	w.WriteBody([]byte(body))
 }
 

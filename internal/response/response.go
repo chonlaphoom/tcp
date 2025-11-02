@@ -45,6 +45,25 @@ func (w *Writer) WriteBody(body []byte) error {
 	return nil
 }
 
+func (w *Writer) WriteChunkedBody(p []byte) (int, error) {
+	numInByte := byte(len(p))
+
+	var buffer bytes.Buffer
+	buffer.WriteByte(numInByte)
+	buffer.Write([]byte("\r\n"))
+	buffer.Write(p)
+
+	err := w.WriteBody(buffer.Bytes())
+
+	return buffer.Len(), err
+}
+
+func (w *Writer) WriteChunkedBodyDone() (int, error) {
+	body := []byte("0\r\n\r\n")
+	err := w.WriteBody(body)
+	return len(body), err
+}
+
 func WriteStatusLine(w io.Writer, statusCode StatusCode) error {
 	var HTTPVersion = "1.1"
 	var Protocol = "HTTP"
@@ -80,11 +99,36 @@ func WriteStatusLine(w io.Writer, statusCode StatusCode) error {
 	}
 }
 
-func NewResponseHeaders(ctnlen int, ctntype string, connectiontype string) headers.Headers {
-	return headers.Headers{
-		"Content-Type":   ctntype,
-		"Content-Length": fmt.Sprint(ctnlen),
-		"Connection":     connectiontype,
+// function optional
+// I don't use pointer here, since maps are already ref types
+func NewResponseHeaders(headerCfgs ...ResponseHeaderCfg) headers.Headers {
+	headers := headers.Headers{}
+	for _, cfg := range headerCfgs {
+		cfg(headers)
+	}
+	return headers
+}
+
+type ResponseHeaderCfg func(headers.Headers)
+
+func NewContentType(cType string) ResponseHeaderCfg {
+	return func(h headers.Headers) {
+		h["Content-type"] = cType
+	}
+}
+func NewContentLength(l int) ResponseHeaderCfg {
+	return func(h headers.Headers) {
+		h["Content-Length"] = fmt.Sprint(l)
+	}
+}
+
+func NewConnection(ct string) ResponseHeaderCfg {
+	if ct == "" {
+		ct = "close"
+	}
+
+	return func(h headers.Headers) {
+		h["Connection"] = ct
 	}
 }
 

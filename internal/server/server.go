@@ -26,7 +26,7 @@ type HandlerError struct {
 
 func (h *HandlerError) Write(w io.Writer) {
 	response.WriteStatusLine(w, h.Code)
-	headers := response.NewResponseHeaders(len(h.Msg), "text/plain", "close")
+	headers := response.NewResponseHeaders(response.NewContentLength(len(h.Msg)), response.NewContentType("text/plain"), response.NewConnection(""))
 	response.WriteHeaders(w, headers)
 	w.Write([]byte(h.Msg))
 	log.Printf("handler error: %s: %v\n", h.Msg, h.Code)
