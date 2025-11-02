@@ -1,6 +1,8 @@
 package main
 
 import (
+	"crypto/sha256"
+	"fmt"
 	"io"
 	"log"
 	"net/http"
@@ -34,9 +36,9 @@ func handler(w response.Writer, req *request.Request) {
 		return
 	}
 
-	if after, ok := strings.CutPrefix(target, "/httpbin/stream/"); ok {
+	if after, ok := strings.CutPrefix(target, "/httpbin/"); ok {
 		count := after
-		res, err := http.Get("https://httpbin.org/stream/" + count)
+		res, err := http.Get("https://httpbin.org/" + count)
 		if err != nil {
 			w.WriteStatusLine(response.StatusInternalServerError)
 			w.WriteHeaders(response.NewResponseHeaders(response.NewContentLength(0), response.NewContentType(contentType), response.NewConnection("")))
@@ -44,14 +46,16 @@ func handler(w response.Writer, req *request.Request) {
 		}
 
 		w.WriteStatusLine(response.StatusOK)
-		w.WriteHeaders(response.NewResponseHeaders(response.NewContentType("text/plain"), response.NewTransferEncoding("chunked")))
-		//
+		w.WriteHeaders(response.NewResponseHeaders(response.NewContentType(contentType), response.NewTransferEncoding("chunked"), response.NewTrailer([]string{"X-Content-SHA256", "X-Content-Length"})))
+
+		fullBody := make([]byte, 0)
 		buffer := make([]byte, 1024)
 		defer res.Body.Close()
 		for {
 			n, err := res.Body.Read(buffer)
 			if n > 0 {
 				w.WriteChunkedBody(buffer[:n])
+				fullBody = append(fullBody, buffer[:n]...)
 			}
 
 			if err == io.EOF {
@@ -67,6 +71,10 @@ func handler(w response.Writer, req *request.Request) {
 		}
 
 		w.WriteChunkedBodyDone()
+		sha256 := fmt.Sprintf("%x", sha256.Sum256(fullBody))
+		w.WriteBodyTrailers([]byte(fmt.Sprintf("%s: %s", "X-Content-SHA256", sha256)))
+		w.WriteBodyTrailers([]byte(fmt.Sprintf("%s: %s\r\n", "X-Content-Length", fmt.Sprintf("%d", len(fullBody)))))
+
 		log.Printf("%s", w.Buffer.Bytes())
 		return
 	}

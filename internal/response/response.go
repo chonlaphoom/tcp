@@ -62,7 +62,7 @@ func (w *Writer) WriteChunkedBody(p []byte) (int, error) {
 }
 
 func (w *Writer) WriteChunkedBodyDone() (int, error) {
-	body := []byte("0\r\n\r\n")
+	body := []byte("0\r\n")
 	err := w.WriteBody(body)
 	return len(body), err
 }
@@ -149,7 +149,7 @@ func NewConnection(ct string) ResponseHeaderCfg {
 }
 func NewTrailer(trailers []string) ResponseHeaderCfg {
 	return func(h headers.Headers) {
-		h[strings.ToLower("Trailer")] = strings.Join(trailers, ", ")
+		h["Trailer"] = strings.Join(trailers, ", ")
 	}
 }
 
