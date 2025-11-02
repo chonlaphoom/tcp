@@ -1,4 +1,4 @@
-Writing http (HTTP/1.1) protocal from tcp 
+Writing http (HTTP/1.1) protocol from tcp 
 
 Internal Packages
 - header
