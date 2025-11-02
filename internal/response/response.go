@@ -45,13 +45,16 @@ func (w *Writer) WriteBody(body []byte) error {
 	return nil
 }
 
-func (w *Writer) WriteChunkedBody(p []byte) (int, error) {
-	numInByte := byte(len(p))
+func (w *Writer) ResetBuffer() error {
+	return w.ResetBuffer()
+}
 
+func (w *Writer) WriteChunkedBody(p []byte) (int, error) {
+	lenInStr := fmt.Sprintf("%x\r\n", len(p))
 	var buffer bytes.Buffer
-	buffer.WriteByte(numInByte)
-	buffer.Write([]byte("\r\n"))
+	buffer.Write([]byte(lenInStr))
 	buffer.Write(p)
+	buffer.Write([]byte("\r\n"))
 
 	err := w.WriteBody(buffer.Bytes())
 
@@ -62,6 +65,15 @@ func (w *Writer) WriteChunkedBodyDone() (int, error) {
 	body := []byte("0\r\n\r\n")
 	err := w.WriteBody(body)
 	return len(body), err
+}
+
+func (w *Writer) WriteBodyTrailers(p []byte) (int, error) {
+	var buffer bytes.Buffer
+	buffer.Write(p)
+	buffer.Write([]byte("\r\n"))
+	w.WriteBody(buffer.Bytes())
+
+	return buffer.Len(), nil
 }
 
 func WriteStatusLine(w io.Writer, statusCode StatusCode) error {
@@ -121,7 +133,11 @@ func NewContentLength(l int) ResponseHeaderCfg {
 		h["Content-Length"] = fmt.Sprint(l)
 	}
 }
-
+func NewTransferEncoding(ct string) ResponseHeaderCfg {
+	return func(h headers.Headers) {
+		h["Transfer-Encoding"] = ct
+	}
+}
 func NewConnection(ct string) ResponseHeaderCfg {
 	if ct == "" {
 		ct = "close"
@@ -129,6 +145,11 @@ func NewConnection(ct string) ResponseHeaderCfg {
 
 	return func(h headers.Headers) {
 		h["Connection"] = ct
+	}
+}
+func NewTrailer(trailers []string) ResponseHeaderCfg {
+	return func(h headers.Headers) {
+		h[strings.ToLower("Trailer")] = strings.Join(trailers, ", ")
 	}
 }
 
