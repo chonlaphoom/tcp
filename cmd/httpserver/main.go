@@ -18,25 +18,14 @@ import (
 const port = 42069
 
 func handler(w response.Writer, req *request.Request) {
-	contentType := "text/html"
 	target := req.RequestLine.RequestTarget
 	if target == "/yourproblem" {
-		w.WriteStatusLine(response.StatusBadRequest)
-		body := `<html>
-  <head>
-    <title>400 Bad Request</title>
-  </head>
-  <body>
-    <h1>Bad Request</h1>
-    <p>Your request honestly kinda sucked.</p>
-  </body>
-</html>`
-		w.WriteHeaders(response.NewResponseHeaders(response.NewContentLength(len(body)), response.NewContentType(contentType), response.NewConnection("")))
-		w.WriteBody([]byte(body))
+		badRequestHandler(w, req)
 		return
 	}
 
 	if after, ok := strings.CutPrefix(target, "/httpbin/"); ok {
+		contentType := "text/html"
 		count := after
 		res, err := http.Get("https://httpbin.org/" + count)
 		if err != nil {
@@ -79,22 +68,17 @@ func handler(w response.Writer, req *request.Request) {
 		return
 	}
 
-	if target == "/myproblem" {
-		w.WriteStatusLine(response.StatusInternalServerError)
-		body := `<html>
-  <head>
-    <title>500 Internal Server Error</title>
-  </head>
-  <body>
-    <h1>Internal Server Error</h1>
-    <p>Okay, you know what? This one is on me.</p>
-  </body>
-</html>`
-		w.WriteHeaders(response.NewResponseHeaders(response.NewContentLength(len(body)), response.NewContentType(contentType), response.NewConnection("")))
-		w.WriteBody([]byte(body))
+	if target == "/video" {
+		videoHandler(w, req)
 		return
 	}
 
+	if target == "/myproblem" {
+		internalServerErrorHandler(w, req)
+		return
+	}
+
+	contentType := "text/html"
 	w.WriteStatusLine(response.StatusOK)
 	body := `<html>
   <head>
@@ -121,4 +105,44 @@ func main() {
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
 	<-sigChan
 	log.Println("Server gracefully stopped")
+}
+
+func badRequestHandler(w response.Writer, req *request.Request) {
+	contentType := "text/html"
+	w.WriteStatusLine(response.StatusBadRequest)
+	body := `<html>
+  <head>
+    <title>400 Bad Request</title>
+  </head>
+  <body>
+    <h1>Bad Request</h1>
+    <p>Your request honestly kinda sucked.</p>
+  </body>
+</html>`
+	w.WriteHeaders(response.NewResponseHeaders(response.NewContentLength(len(body)), response.NewContentType(contentType), response.NewConnection("")))
+	w.WriteBody([]byte(body))
+}
+
+func internalServerErrorHandler(w response.Writer, req *request.Request) {
+	contentType := "text/html"
+	body := `<html>
+  <head>
+    <title>500 Internal Server Error</title>
+  </head>
+  <body>
+    <h1>Internal Server Error</h1>
+    <p>Okay, you know what? This one is on me.</p>
+  </body>
+</html>`
+	w.WriteStatusLine(response.StatusInternalServerError)
+	w.WriteHeaders(response.NewResponseHeaders(response.NewContentLength(len(body)), response.NewContentType(contentType), response.NewConnection("")))
+	w.WriteBody([]byte(body))
+}
+
+func videoHandler(w response.Writer, req *request.Request) {
+	contentType := "video/mp4"
+	w.WriteStatusLine(response.StatusOK)
+	data, _ := os.ReadFile("asset/vim.mp4")
+	w.WriteHeaders(response.NewResponseHeaders(response.NewContentLength(len(data)), response.NewContentType(contentType), response.NewConnection("")))
+	w.WriteBody(data)
 }
