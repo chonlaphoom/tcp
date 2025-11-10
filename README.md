@@ -1,11 +1,10 @@
-Writing http (HTTP/1.1) protocol from tcp 
-
-ref: https://www.rfc-editor.org/rfc/rfc9112
 # tcp
 
 A small set of Go utilities and examples demonstrating low-level HTTP-over-TCP parsing and serving.
 
 This repository contains a simple HTTP server built on top of a custom request parser and response writer, plus small helper programs for listening to raw TCP and sending UDP messages.
+
+ref: https://www.rfc-editor.org/rfc/rfc9112
 
 ## Project layout
 
